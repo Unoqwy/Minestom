@@ -342,6 +342,10 @@ public class PlayerSocketConnection extends PlayerConnection {
             PlayerPacketOutEvent event = new PlayerPacketOutEvent(player, serverPacket);
             outgoing.call(event);
             if (event.isCancelled()) return;
+            if (event.getPacketOverride() != null) {
+                writeServerPacketSync(event.getPacketOverride(), compressed);
+                return;
+            }
         }
         // Write packet
         if (packet instanceof ServerPacket serverPacket) {
