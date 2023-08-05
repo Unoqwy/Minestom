@@ -356,6 +356,9 @@ public class PlayerSocketConnection extends PlayerConnection {
                     PlayerPacketOutEvent event = new PlayerPacketOutEvent(player, serverPacket);
                     outgoing.call(event);
                     if (event.isCancelled()) return true;
+                    if (event.getPacketOverride() != null) {
+                        packet = event.getPacketOverride();
+                    }
                 }
             }
             // Translation
