@@ -195,8 +195,8 @@ public class Player extends LivingEntity implements CommandSender, HoverEventSou
 
     private Pos respawnPoint;
 
-    private int food;
-    private float foodSaturation;
+    private int food = 20;
+    private float foodSaturation = 5;
 
     private long startItemUseTime;
     private long itemUseTime;
@@ -260,6 +260,8 @@ public class Player extends LivingEntity implements CommandSender, HoverEventSou
 
         // When in configuration state no metadata updates can be sent.
         metadata.setNotifyAboutChanges(false);
+
+        heal(); // Default to full health
     }
 
     @ApiStatus.Internal
@@ -345,7 +347,6 @@ public class Player extends LivingEntity implements CommandSender, HoverEventSou
         // Some client updates
         sendPacket(getPropertiesPacket()); // Send default properties
         triggerStatus((byte) (EntityStatuses.Player.PERMISSION_LEVEL_0 + permissionLevel)); // Set permission level
-        refreshHealth(); // Heal and send health packet
         refreshAbilities(); // Send abilities packet
 
         return setInstance(spawnInstance);
@@ -742,6 +743,12 @@ public class Player extends LivingEntity implements CommandSender, HoverEventSou
             sendPacket(new ChangeGameStatePacket(ChangeGameStatePacket.Reason.LEVEL_CHUNKS_LOAD_START, 0));
         }
 
+        if (firstSpawn) {
+            // Synchronize health and exp possibly set to custom values at configuration stage
+            sendPacket(new UpdateHealthPacket(getHealth(), food, foodSaturation));
+            sendPacket(new SetExperiencePacket(exp, level, 0));
+        } // (else: refreshHealth isn't needed)
+
         EventDispatcher.call(new PlayerSpawnEvent(this, instance, firstSpawn));
         if (firstSpawn) EventsJFR.newPlayerJoin(getUuid()).commit();
     }
@@ -1037,7 +1044,9 @@ public class Player extends LivingEntity implements CommandSender, HoverEventSou
 
     @Override
     public void setHealth(float health) {
-        sendPacket(new UpdateHealthPacket(health, food, foodSaturation));
+        if (isActive()) {
+            sendPacket(new UpdateHealthPacket(health, food, foodSaturation));
+        }
         super.setHealth(health);
     }
 
@@ -1095,7 +1104,9 @@ public class Player extends LivingEntity implements CommandSender, HoverEventSou
         Check.argCondition(!MathUtils.isBetween(food, 0, 20),
                 "Food has to be between 0 and 20");
         this.food = food;
-        sendPacket(new UpdateHealthPacket(getHealth(), food, foodSaturation));
+        if (isActive()) {
+            sendPacket(new UpdateHealthPacket(getHealth(), food, foodSaturation));
+        }
     }
 
     public float getFoodSaturation() {
@@ -1112,7 +1123,9 @@ public class Player extends LivingEntity implements CommandSender, HoverEventSou
         Check.argCondition(!MathUtils.isBetween(foodSaturation, 0, 20),
                 "Food saturation has to be between 0 and 20");
         this.foodSaturation = foodSaturation;
-        sendPacket(new UpdateHealthPacket(getHealth(), food, foodSaturation));
+        if (isActive()) {
+            sendPacket(new UpdateHealthPacket(getHealth(), food, foodSaturation));
+        }
     }
 
     /**
@@ -1524,7 +1537,9 @@ public class Player extends LivingEntity implements CommandSender, HoverEventSou
     public void setExp(float exp) {
         Check.argCondition(!MathUtils.isBetween(exp, 0, 1), "Exp should be between 0 and 1");
         this.exp = exp;
-        sendPacket(new SetExperiencePacket(exp, level, 0));
+        if (isActive()) {
+            sendPacket(new SetExperiencePacket(exp, level, 0));
+        }
     }
 
     /**
@@ -1544,7 +1559,9 @@ public class Player extends LivingEntity implements CommandSender, HoverEventSou
      */
     public void setLevel(int level) {
         this.level = level;
-        sendPacket(new SetExperiencePacket(exp, level, 0));
+        if (isActive()) {
+            sendPacket(new SetExperiencePacket(exp, level, 0));
+        }
     }
 
     public int getPortalCooldown() {
@@ -1760,7 +1777,9 @@ public class Player extends LivingEntity implements CommandSender, HoverEventSou
     public void setHeldItemSlot(byte slot) {
         Check.argCondition(!MathUtils.isBetween(slot, 0, 8), "Slot has to be between 0 and 8");
         refreshHeldSlot(slot);
-        sendPacket(new HeldItemChangePacket(slot));
+        if (isActive()) {
+            sendPacket(new HeldItemChangePacket(slot));
+        }
     }
 
     /**
@@ -2010,7 +2029,9 @@ public class Player extends LivingEntity implements CommandSender, HoverEventSou
      */
     public void setInvulnerable(boolean invulnerable) {
         super.setInvulnerable(invulnerable);
-        refreshAbilities();
+        if (isActive()) {
+            refreshAbilities();
+        }
     }
 
     @Override
@@ -2038,7 +2059,9 @@ public class Player extends LivingEntity implements CommandSender, HoverEventSou
      */
     public void setFlying(boolean flying) {
         refreshFlying(flying);
-        refreshAbilities();
+        if (isActive()) {
+            refreshAbilities();
+        }
     }
 
     /**
@@ -2080,7 +2103,9 @@ public class Player extends LivingEntity implements CommandSender, HoverEventSou
      */
     public void setAllowFlying(boolean allowFlying) {
         this.allowFlying = allowFlying;
-        refreshAbilities();
+        if (isActive()) {
+            refreshAbilities();
+        }
     }
 
     public boolean isInstantBreak() {
@@ -2095,7 +2120,9 @@ public class Player extends LivingEntity implements CommandSender, HoverEventSou
      */
     public void setInstantBreak(boolean instantBreak) {
         this.instantBreak = instantBreak;
-        refreshAbilities();
+        if (isActive()) {
+            refreshAbilities();
+        }
     }
 
     /**
@@ -2114,7 +2141,9 @@ public class Player extends LivingEntity implements CommandSender, HoverEventSou
      */
     public void setFlyingSpeed(float flyingSpeed) {
         this.flyingSpeed = flyingSpeed;
-        refreshAbilities();
+        if (isActive()) {
+            refreshAbilities();
+        }
     }
 
     public float getFieldViewModifier() {
@@ -2123,7 +2152,9 @@ public class Player extends LivingEntity implements CommandSender, HoverEventSou
 
     public void setFieldViewModifier(float fieldViewModifier) {
         this.fieldViewModifier = fieldViewModifier;
-        refreshAbilities();
+        if (isActive()) {
+            refreshAbilities();
+        }
     }
 
     /**
